@@ -5,18 +5,20 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from decouple import config
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from starlette import status
 from starlette.responses import StreamingResponse, JSONResponse
 
 from chalicelib.utils import helper
 from chalicelib.utils import pg_client
 from routers import core, core_dynamic, ee, saml
-from routers.subs import v1_api
 from routers.crons import core_crons
 from routers.crons import core_dynamic_crons
 from routers.subs import dashboard, insights, metrics, v1_api_ee
+from routers.subs import v1_api
 
-app = FastAPI(root_path="/api")
+app = FastAPI(root_path="/api", docs_url=config("docs_url", default=""), redoc_url=config("redoc_url", default=""))
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.middleware('http')
@@ -33,7 +35,9 @@ async def or_middleware(request: Request, call_next):
             now = int(time.time() * 1000)
         response: StreamingResponse = await call_next(request)
         if helper.TRACK_TIME:
-            print(f"Execution time: {int(time.time() * 1000) - now} ms")
+            now = int(time.time() * 1000) - now
+            if now > 500:
+                print(f"Execution time: {now} ms")
     except Exception as e:
         pg_client.close()
         raise e

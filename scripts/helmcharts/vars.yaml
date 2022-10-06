@@ -1,4 +1,4 @@
-fromVersion: "v1.7.0"
+fromVersion: "v1.8.1"
 # Databases specific variables
 postgresql: &postgres
   # For generating passwords
@@ -18,6 +18,10 @@ postgresql: &postgres
   #     cpu: 2
 
 clickhouse:
+  # For enterpriseEdition
+  enabled: false
+
+quickwit: &quickwit
   # For enterpriseEdition
   enabled: false
 
@@ -94,13 +98,18 @@ global:
   postgresql: *postgres
   kafka: *kafka
   redis: *redis
+  quickwit: *quickwit
   openReplayContainerRegistry: "public.ecr.aws/p1t3u8a3"
+  # secret key to inject to assist and peers service
+  assistKey: "SetARandomStringHere"
   s3:
     region: "us-east-1"
     endpoint: "http://minio.db.svc.cluster.local:9000"
     assetsBucket: "sessions-assets"
     recordingsBucket: "mobs"
     sourcemapsBucket: "sourcemaps"
+    # This is only for enterpriseEdition
+    quickwitBucket: "quickwit"
     # if you're using one node installation, where
     # you're using local s3, make sure these variables
     # are same as minio.global.minio.accesskey and  secretKey

@@ -1,6 +1,6 @@
 import React from 'react';
 import cn from 'classnames';
-import { CircularLoader, Icon } from 'UI';
+import { CircularLoader, Icon, Popup } from 'UI';
 
 interface Props {
     className?: string;
@@ -8,9 +8,11 @@ interface Props {
     onClick?: () => void;
     disabled?: boolean;
     type?: 'button' | 'submit' | 'reset';
+    variant?: 'default' | 'primary' | 'text' | 'text-primary' | 'text-red' | 'outline' | 'green'
     loading?: boolean;
     icon?: string;
     rounded?: boolean;
+    tooltip?: any;
     [x: string]: any;
 }
 export default (props: Props) => {
@@ -24,21 +26,28 @@ export default (props: Props) => {
         children,
         loading = false,
         rounded = false,
+        tooltip = null,
         ...rest
     } = props;
 
     let classes = ['relative flex items-center h-10 px-3 rounded tracking-wide whitespace-nowrap'];
+    let iconColor = variant === 'text' || variant === 'default' ? 'gray-dark' : 'teal';
 
     if (variant === 'default') {
-        classes.push('bg-white hover:bg-gray-lightest border border-gray-light');
+        classes.push('bg-white hover:bg-gray-light border border-gray-light');
     }
 
     if (variant === 'primary') {
         classes.push('bg-teal color-white hover:bg-teal-dark');
     }
 
+    if (variant === 'green') {
+        classes.push('bg-green color-white hover:bg-green-dark');
+        iconColor = 'white';
+    }
+
     if (variant === 'text') {
-        classes.push('bg-transparent color-gray-dark hover:bg-gray-lightest hover:color-gray-dark');
+        classes.push('bg-transparent color-gray-dark hover:bg-gray-light hover:color-gray-dark');
     }
 
     if (variant === 'text-primary') {
@@ -57,7 +66,6 @@ export default (props: Props) => {
         classes.push('opacity-40 pointer-events-none');
     }
 
-    let iconColor = variant === 'text' || variant === 'default' ? 'gray-dark' : 'teal';
     if (variant === 'primary') {
         iconColor = 'white';
     }
@@ -69,7 +77,7 @@ export default (props: Props) => {
         classes = classes.map((c) => c.replace('rounded', 'rounded-full h-10 w-10 justify-center'));
     }
 
-    return (
+    const render = () => (
         <button {...rest} type={type} className={cn(classes, className)}>
             {icon && <Icon className={cn({ 'mr-2': children })} name={icon} color={iconColor} size="16" />}
             {loading && (
@@ -80,4 +88,6 @@ export default (props: Props) => {
             <div className={cn({ 'opacity-0': loading }, 'flex items-center')}>{children}</div>
         </button>
     );
+
+    return tooltip ? <Popup content={tooltip.title} {...tooltip}>{render()}</Popup> : render();
 };

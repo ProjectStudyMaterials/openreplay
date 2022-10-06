@@ -9,6 +9,7 @@ type Consumer interface {
 	Commit() error
 	CommitBack(gap int64) error
 	Close()
+	HasFirstPartition() bool
 }
 
 type Producer interface {
@@ -26,3 +27,4 @@ type Meta struct {
 
 type MessageHandler func(uint64, []byte, *Meta)
 type DecodedMessageHandler func(uint64, messages.Message, *Meta)
+type RawMessageHandler func(uint64, messages.Iterator, *Meta)

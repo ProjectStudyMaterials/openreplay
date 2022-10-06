@@ -18,7 +18,7 @@ const RANGE_LABELS = {
     [LAST_30_MINUTES]: "Last 30 Minutes",
     [TODAY]: "Today",
     [YESTERDAY]: "Yesterday",
-    [LAST_24_HOURS]: "Last 24 Hours",
+    [LAST_24_HOURS]: "Past 24 Hours",
     [LAST_7_DAYS]: "Last 7 Days",
     [LAST_30_DAYS]: "Last 30 Days",
     [THIS_MONTH]: "This Month",
@@ -26,43 +26,43 @@ const RANGE_LABELS = {
     [THIS_YEAR]: "This Year",
 };
 
-function getRange(rangeName) {
+function getRange(rangeName, offset) {
     switch (rangeName) {
         case TODAY:
             return moment.range(moment().startOf("day"), moment().endOf("day"));
         case YESTERDAY:
             return moment.range(
-                moment().subtract(1, "days").startOf("day"),
-                moment().subtract(1, "days").endOf("day")
+                moment().utcOffset(offset).subtract(1, "days").startOf("day"),
+                moment().utcOffset(offset).subtract(1, "days").endOf("day")
             );
         case LAST_24_HOURS:
             return moment.range(
                 // moment().startOf("hour").subtract(24, "hours"),
                 // moment().startOf("hour")
-				moment().subtract(24, 'hours'),
-        		moment(),
+				moment().utcOffset(offset).subtract(24, 'hours'),
+        		moment().utcOffset(offset),
             );
         case LAST_30_MINUTES:
             return moment.range(
-                moment().startOf("hour").subtract(30, "minutes"),
-                moment().startOf("hour")
+                moment().utcOffset(offset).startOf("hour").subtract(30, "minutes"),
+                moment().utcOffset(offset).startOf("hour")
             );
         case LAST_7_DAYS:
             return moment.range(
-                moment().subtract(7, "days").startOf("day"),
-                moment().endOf("day")
+                moment().utcOffset(offset).subtract(7, "days").startOf("day"),
+                moment().utcOffset(offset).endOf("day")
             );
         case LAST_30_DAYS:
             return moment.range(
-                moment().subtract(30, "days").startOf("day"),
-                moment().endOf("day")
+                moment().utcOffset(offset).subtract(30, "days").startOf("day"),
+                moment().utcOffset(offset).endOf("day")
             );
         case THIS_MONTH:
-            return moment().range("month");
+            return moment().utcOffset(offset).range("month");
         case LAST_MONTH:
-            return moment().subtract(1, "months").range("month");
+            return moment().utcOffset(offset).subtract(1, "months").range("month");
         case THIS_YEAR:
-            return moment().range("year");
+            return moment().utcOffset(offset).range("year");
         default:
             return moment.range();
     }
@@ -77,6 +77,7 @@ export default Record(
     },
     {
         fromJS: (period) => {
+            const offset = period.timezoneOffset || 0
             if (!period.rangeName || period.rangeName === CUSTOM_RANGE) {
                 const range = moment.range(
                     moment(period.start || 0),
@@ -89,7 +90,7 @@ export default Record(
                     end: range.end.unix() * 1000,
                 };
             }
-            const range = getRange(period.rangeName);
+            const range = getRange(period.rangeName, offset);
             return {
                 ...period,
                 range,
@@ -97,14 +98,6 @@ export default Record(
                 end: range.end.unix() * 1000,
             };
         },
-        // fromFilter: filter => {
-        // 	const range = getRange(filter.rangeName);
-        // 	return {
-        // 		start: range.start.unix() * 1000,
-        // 		end: range.end.unix() * 1000,
-        // 		rangeName: filter.rangeName,
-        // 	}
-        // },
         methods: {
             toJSON() {
                 return {
@@ -120,7 +113,16 @@ export default Record(
                     endTimestamp: this.end,
                 };
             },
-            rangeFormatted(format = "MMM Do YY, HH:mm") {
+            rangeFormatted(format = "MMM Do YY, HH:mm", tz) {
+                if (tz) {
+                    const start = this.range.start.clone();
+                    const end = this.range.end.clone();
+                    return (
+                        start.utcOffset(tz).format(format) +
+                        " - " +
+                        end.utcOffset(tz).format(format)
+                    )
+                }
                 return (
                     this.range.start.format(format) +
                     " - " +

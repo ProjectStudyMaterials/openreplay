@@ -6,9 +6,8 @@ from starlette.responses import RedirectResponse
 
 import schemas
 import schemas_ee
-from chalicelib.core import integrations_manager
 from chalicelib.core import sessions
-from chalicelib.core import tenants, users, metadata, projects, license
+from chalicelib.core import tenants, users, projects, license
 from chalicelib.core import webhook
 from chalicelib.core.collaboration_slack import Slack
 from chalicelib.utils import SAML2_helper
@@ -44,6 +43,14 @@ def get_account(context: schemas.CurrentContext = Depends(OR_context)):
             # "iceServers": assist.get_ice_servers()
         }
     }
+
+
+@app.post('/account', tags=["account"])
+@app.put('/account', tags=["account"])
+def edit_account(data: schemas_ee.EditUserSchema = Body(...),
+                 context: schemas.CurrentContext = Depends(OR_context)):
+    return users.edit(tenant_id=context.tenant_id, user_id_to_update=context.user_id, changes=data,
+                      editor_id=context.user_id)
 
 
 @app.get('/projects/limit', tags=['projects'])
@@ -88,18 +95,6 @@ def edit_slack_integration(integrationId: int, data: schemas.EditSlackSchema = B
                 }
     return {"data": webhook.update(tenant_id=context.tenant_id, webhook_id=integrationId,
                                    changes={"name": data.name, "endpoint": data.url})}
-
-
-# this endpoint supports both jira & github based on `provider` attribute
-@app.post('/integrations/issues', tags=["integrations"])
-def add_edit_jira_cloud_github(data: schemas.JiraGithubSchema,
-                               context: schemas.CurrentContext = Depends(OR_context)):
-    provider = data.provider.upper()
-    error, integration = integrations_manager.get_integration(tool=provider, tenant_id=context.tenant_id,
-                                                              user_id=context.user_id)
-    if error is not None:
-        return error
-    return {"data": integration.add_edit(data=data.dict())}
 
 
 @app.post('/client/members', tags=["client"])

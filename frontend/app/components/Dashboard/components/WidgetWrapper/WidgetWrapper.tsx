@@ -25,10 +25,12 @@ interface Props {
     history?: any
     onClick?: () => void;
     isWidget?: boolean;
+    hideName?: boolean;
+    grid?: string;
 }
 function WidgetWrapper(props: Props & RouteComponentProps) {
     const { dashboardStore } = useStore();
-    const { isWidget = false, active = false, index = 0, moveListItem = null, isPreview = false, isTemplate = false, dashboardId, siteId } = props;
+    const { isWidget = false, active = false, index = 0, moveListItem = null, isPreview = false, isTemplate = false, siteId, grid = "" } = props;
     const widget: any = props.widget;
     const isTimeSeries = widget.metricType === 'timeseries';
     const isPredefined = widget.metricType === 'predefined';
@@ -36,7 +38,7 @@ function WidgetWrapper(props: Props & RouteComponentProps) {
 
     const [{ isDragging }, dragRef] = useDrag({
         type: 'item',
-        item: { index },
+        item: { index, grid },
         collect: (monitor) => ({
             isDragging: monitor.isDragging(),
             opacity: monitor.isDragging() ? 0.5 : 1,
@@ -46,8 +48,11 @@ function WidgetWrapper(props: Props & RouteComponentProps) {
     const [{ isOver, canDrop }, dropRef] = useDrop({
         accept: 'item',
         drop: (item: any) => {
-            if (item.index === index) return;
+            if (item.index === index || (item.grid !== grid)) return;
             moveListItem(item.index, index);
+        },
+        canDrop(item) {
+            return item.grid === grid
         },
         collect: (monitor: any) => ({
             isOver: monitor.isOver(),
@@ -112,7 +117,7 @@ function WidgetWrapper(props: Props & RouteComponentProps) {
                     <div
                         className={cn("p-3 pb-4 flex items-center justify-between", { "cursor-move" : !isTemplate && isWidget })}
                     >
-                        <div className="capitalize-first w-full font-medium">{widget.name}</div>
+                        {!props.hideName ? <div className="capitalize-first w-full font-medium">{widget.name}</div> : null}
                         {isWidget && (
                             <div className="flex items-center" id="no-print">
                                 {!isPredefined && isTimeSeries && (

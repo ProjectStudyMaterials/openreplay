@@ -1,3 +1,4 @@
+import logger from 'App/logger';
 import APIClient from './api_client';
 import { UPDATE, DELETE } from './duck/jwt';
 
@@ -11,9 +12,13 @@ export default store => next => (action) => {
   const client = new APIClient();
 
   return call(client)
-    .then(response => {
+    .then(async response => {
       if (response.status === 403) {
         next({ type: DELETE });
+      }
+      if (!response.ok) {
+        const text = await response.text()
+        return Promise.reject(text);
       }
       return response.json()
     })
@@ -28,8 +33,9 @@ export default store => next => (action) => {
         next({ type: UPDATE, data: jwt });
       }
     })
-    .catch(() => {
-      return next({ type: FAILURE, errors: [ 'Connection error' ] });
+    .catch((e) => {
+      logger.error("Error during API request. ", e)
+      return next({ type: FAILURE, errors: JSON.parse(e).errors || [] });
     });
 };
 

@@ -25,6 +25,8 @@ const SET_AUTOPLAY_VALUES = 'sessions/SET_AUTOPLAY_VALUES';
 const TOGGLE_CHAT_WINDOW = 'sessions/TOGGLE_CHAT_WINDOW';
 const SET_FUNNEL_PAGE_FLAG = 'sessions/SET_FUNNEL_PAGE_FLAG';
 const SET_TIMELINE_POINTER = 'sessions/SET_TIMELINE_POINTER';
+const SET_TIMELINE_HOVER_POINTER = 'sessions/SET_TIMELINE_HOVER_POINTER';
+
 const SET_SESSION_PATH = 'sessions/SET_SESSION_PATH';
 const LAST_PLAYED_SESSION_ID = `${name}/LAST_PLAYED_SESSION_ID`;
 const SET_ACTIVE_TAB = 'sessions/SET_ACTIVE_TAB';
@@ -61,14 +63,15 @@ const initialState = Map({
     timelinePointer: null,
     sessionPath: {},
     lastPlayedSessionId: null,
+    timeLineTooltip: { time: 0, offset: 0, isVisible: false }
 });
 
 const reducer = (state = initialState, action = {}) => {
     switch (action.type) {
         case INIT:
             return state.set('current', Session(action.session));
-        case FETCH_LIST.REQUEST:
-            return action.clear ? state.set('list', List()) : state;
+        // case FETCH_LIST.REQUEST:
+        //     return action.clear ? state.set('list', List()) : state;
         case FETCH_ERROR_STACK.SUCCESS:
             return state.set('errorStack', List(action.data.trace).map(ErrorStack)).set('sourcemapUploaded', action.data.sourcemapUploaded);
         case FETCH_LIVE_LIST.SUCCESS:
@@ -187,6 +190,8 @@ const reducer = (state = initialState, action = {}) => {
             return state.set('funnelPage', action.funnelPage ? Map(action.funnelPage) : false);
         case SET_TIMELINE_POINTER:
             return state.set('timelinePointer', action.pointer);
+        case SET_TIMELINE_HOVER_POINTER:
+            return state.set('timeLineTooltip', action.timeLineTooltip);
         case SET_SESSION_PATH:
             return state.set('sessionPath', action.path);
         case LAST_PLAYED_SESSION_ID:
@@ -224,7 +229,7 @@ function init(session) {
 }
 
 export const fetchList =
-    (params = {}, clear = false, force = false) =>
+    (params = {}, force = false) =>
     (dispatch, getState) => {
         if (!force) { // compare with the last fetched filter
             const oldFilters = getSessionFilter();
@@ -237,7 +242,6 @@ export const fetchList =
         return dispatch({
             types: FETCH_LIST.toArray(),
             call: (client) => client.post('/sessions/search2', params),
-            clear,
             params: cleanParams(params),
         });
     };
@@ -348,6 +352,13 @@ export function setTimelinePointer(pointer) {
     return {
         type: SET_TIMELINE_POINTER,
         pointer,
+    };
+}
+
+export function setTimelineHoverTime(timeLineTooltip) {
+    return {
+        type: SET_TIMELINE_HOVER_POINTER,
+        timeLineTooltip
     };
 }
 

@@ -42,6 +42,8 @@ spec:
           {{- .Values.healthCheck | toYaml | nindent 10}}
           {{- end}}
           env:
+            - name: ASSIST_KEY
+              value: {{ .Values.global.assistKey }}
             - name: LICENSE_KEY
               value: '{{ .Values.global.enterpriseEditionLicense }}'
             - name: version_number
@@ -60,7 +62,7 @@ spec:
               value: 'https://{{ .Values.global.domainName }}'
             - name: S3_HOST
               {{- if eq .Values.global.s3.endpoint "http://minio.db.svc.cluster.local:9000" }}
-              value: 'https://{{ .Values.global.domainName }}'
+              value: 'https://{{ .Values.global.domainName }}:{{ .Values.global.ingress.controller.service.ports.https}}'
               {{- else}}
               value: '{{ .Values.global.s3.endpoint }}'
               {{- end}}
@@ -106,8 +108,33 @@ spec:
               containerPort: {{ $val }}
               protocol: TCP
             {{- end }}
+          volumeMounts:
+            - name: datadir
+              mountPath: /mnt/efs
+          {{- with .Values.persistence.mounts  }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if eq .Values.pvc.name "hostPath" }}
+      volumes:
+      - name: datadir
+        hostPath:
+          # Ensure the file directory is created.
+          path: {{ .Values.pvc.hostMountPath }}
+          type: DirectoryOrCreate
+      {{- with .Values.persistence.volumes  }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- else }}
+      volumes:
+      - name: datadir
+        persistentVolumeClaim:
+          claimName: {{ .Values.pvc.name }}
+      {{- with .Values.persistence.volumes  }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

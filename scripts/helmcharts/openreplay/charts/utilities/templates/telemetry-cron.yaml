@@ -10,12 +10,13 @@ spec:
   successfulJobsHistoryLimit: 1
   jobTemplate:
     spec:
+      backoffLimit: 0 # Don't restart the failed jobs
       template:
         spec:
           restartPolicy: Never
           containers:
           - name: telemetry-cron
-            image: "{{ tpl .Values.telemetry.image.repository . }}:{{ .Values.image.tag | default .Chart.AppVersion }}-ee"
+            image: "{{ tpl .Values.telemetry.image.repository . }}:{{ .Values.telemetry.image.tag | default .Chart.AppVersion }}-ee"
             env:
               - name: LICENSE_KEY
                 value: '{{ .Values.global.enterpriseEditionLicense }}'
@@ -35,7 +36,7 @@ spec:
                 value: 'https://{{ .Values.global.domainName }}'
               - name: S3_HOST
                 {{- if eq .Values.global.s3.endpoint "http://minio.db.svc.cluster.local:9000" }}
-                value: 'https://{{ .Values.global.domainName }}'
+                value: 'https://{{ .Values.global.domainName }}:{{ .Values.global.ingress.controller.service.ports.https}}'
                 {{- else}}
                 value: '{{ .Values.global.s3.endpoint }}'
                 {{- end}}

@@ -5,6 +5,7 @@ import OutsideClickDetectingDiv from 'Shared/OutsideClickDetectingDiv';
 import IssuesModal from './IssuesModal';
 import { fetchProjects, fetchMeta } from 'Duck/assignments';
 import stl from './issues.module.css';
+import { Tooltip } from 'react-tippy'
 
 @connect(state => ({
   issues: state.getIn(['assignments', 'list']),
@@ -59,11 +60,17 @@ class Issues extends React.Component {
     return (
         <div className="relative">
           <div className={ stl.buttonWrapper} onClick={this.handleOpen}>
-            <Popup
+            <Tooltip
               open={this.state.showModal}
-              position="top right"
+              position="bottom"
               interactive
-              content={
+              // animation="shift"
+              trigger="click"
+              unmountHTMLWhenHide
+              // @ts-ignore
+              theme='light'
+              arrow
+              html={
                 <OutsideClickDetectingDiv onClickOutside={this.closeModal}>
                   <IssuesModal
                     provider={provider}
@@ -72,13 +79,12 @@ class Issues extends React.Component {
                   />
                 </OutsideClickDetectingDiv>
               }
-              theme="tippy-light"
             >
               <div className="flex items-center" onClick={this.handleOpen} disabled={!isModalDisplayed && (metaLoading || fetchIssuesLoading || projectsLoading)}>
                     <Icon name={ `integrations/${ provider === 'jira' ? 'jira' : 'github'}` } size="16" />
                     <span className="ml-2">Create Issue</span>
-                  </div>
-            </Popup>
+                </div>
+            </Tooltip>
           </div>
         </div>
     );

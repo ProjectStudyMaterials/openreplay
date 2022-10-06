@@ -1,5 +1,5 @@
 const helper = require('./helper');
-let debug = process.env.debug === "1" || false;
+let debug = process.env.debug === "1";
 const getBodyFromUWSResponse = async function (res) {
     return new Promise(((resolve, reject) => {
         let buffer;
@@ -91,6 +91,7 @@ const extractPayloadFromRequest = async function (req, res) {
         return helper.extractPayloadFromRequest(req);
     }
     filters.filter = helper.objectToObjectOfArrays(filters.filter);
+    filters.filter = helper.transformFilters(filters.filter);
     debug && console.log("payload/filters:" + JSON.stringify(filters))
     return Object.keys(filters).length > 0 ? filters : undefined;
 }

@@ -1,49 +1,21 @@
 import { makeAutoObservable, observable, action, runInAction } from "mobx"
-import Widget, { IWidget } from "./widget"
+import Widget from "./widget"
 import { dashboardService  } from "App/services"
 import { toast } from 'react-toastify';
+import { DateTime } from 'luxon';
 
-export interface IDashboard {
-    dashboardId: any
-    name: string
-    description: string
-    isPublic: boolean
-    widgets: IWidget[]
-    metrics: any[]
-    isValid: boolean
-    isPinned: boolean
-    currentWidget: IWidget
-    config: any
-
-    update(data: any): void
-    toJson(): any
-    fromJson(json: any): void
-    validate(): void
-    addWidget(widget: IWidget): void
-    removeWidget(widgetId: string): void
-    updateWidget(widget: IWidget): void
-    getWidget(widgetId: string): void
-    getWidgetIndex(widgetId: string): IWidget
-    getWidgetByIndex(index: number): void
-    getWidgetCount(): void
-    getWidgetIndexByWidgetId(widgetId: string): void
-    swapWidgetPosition(positionA: number, positionB: number): Promise<any>
-    sortWidgets(): void
-    exists(): boolean
-    toggleMetrics(metricId: string): void
-}
-export default class Dashboard implements IDashboard {
+export default class Dashboard {
     public static get ID_KEY():string { return "dashboardId" }
     dashboardId: any = undefined
-    name: string = "New Dashboard"
+    name: string = "Untitled Dashboard"
     description: string = ""
     isPublic: boolean = true
-    widgets: IWidget[] = []
+    widgets: Widget[] = []
     metrics: any[] = []
     isValid: boolean = false
-    isPinned: boolean = false
-    currentWidget: IWidget = new Widget()
+    currentWidget: Widget = new Widget()
     config: any = {}
+    createdAt: Date = new Date()
 
     constructor() {
         makeAutoObservable(this)
@@ -63,8 +35,7 @@ export default class Dashboard implements IDashboard {
             dashboardId: this.dashboardId,
             name: this.name,
             isPublic: this.isPublic,
-            // widgets: this.widgets.map(w => w.toJson())
-            // widgets: this.widgets
+            createdAt: this.createdAt,
             metrics: this.metrics,
             description: this.description,
         }
@@ -76,8 +47,20 @@ export default class Dashboard implements IDashboard {
             this.name = json.name
             this.description = json.description
             this.isPublic = json.isPublic
-            this.isPinned = json.isPinned
-            this.widgets = json.widgets ? json.widgets.map(w => new Widget().fromJson(w)).sort((a, b) => a.position - b.position) : []
+            this.createdAt = DateTime.fromMillis(new Date(json.createdAt).getTime())
+            if (json.widgets) {
+                const smallWidgets: any[] = json.widgets.filter(wi => wi.config.col === 1)
+                const otherWidgets: any[] = json.widgets.filter(wi => wi.config.col !== 1)
+                const widgets = [...smallWidgets.sort((a,b) => a.config.position - b.config.position), ...otherWidgets.sort((a,b) => a.config.position - b.config.position)]
+
+                widgets.forEach((widget, index) => {
+                    widget.config.position = index
+                })
+
+                this.widgets = widgets.map((w: Widget) => new Widget().fromJson(w))
+            } else {
+                this.widgets = []
+            }
         })
         return this
     }
@@ -86,7 +69,7 @@ export default class Dashboard implements IDashboard {
         return this.isValid = this.name.length > 0
     }
 
-    addWidget(widget: IWidget) {
+    addWidget(widget: Widget) {
         this.widgets.push(widget)
     }
 
@@ -94,7 +77,7 @@ export default class Dashboard implements IDashboard {
         this.widgets = this.widgets.filter(w => w.widgetId !== widgetId)
     }
 
-    updateWidget(widget: IWidget) {
+    updateWidget(widget: Widget) {
         const index = this.widgets.findIndex(w => w.widgetId === widget.widgetId)
         if (index >= 0) {
             this.widgets[index] = widget
@@ -121,7 +104,7 @@ export default class Dashboard implements IDashboard {
         return this.widgets.findIndex(w => w.widgetId === widgetId)
     }
 
-    swapWidgetPosition(positionA, positionB): Promise<any> {
+    swapWidgetPosition(positionA: number, positionB: number): Promise<any> {
         const widgetA = this.widgets[positionA]
         const widgetB = this.widgets[positionB]
         this.widgets[positionA] = widgetB
@@ -135,7 +118,7 @@ export default class Dashboard implements IDashboard {
                 dashboardService.saveWidget(this.dashboardId, widgetA),
                 dashboardService.saveWidget(this.dashboardId, widgetB)
             ]).then(() => {
-                toast.success("Dashboard updated successfully")
+                toast.success("Dashboard successfully updated")
                 resolve()
             }).catch(() => {
                 toast.error("Error updating widget position")

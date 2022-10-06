@@ -120,3 +120,23 @@ healthCheck:
     initialDelaySeconds: 100
     periodSeconds: 15
     timeoutSeconds: 10
+
+
+pvc:
+  # This can be either persistentVolumeClaim or hostPath.
+  # In case of pvc, you'll have to provide the pvc name.
+  # For example
+  # name: openreplay-efs
+  name: hostPath
+  hostMountPath: /openreplay/storage/nfs
+
+persistence: {}
+  # # Spec of spec.template.spec.containers[*].volumeMounts
+  # mounts:
+  # - name: kafka-ssl
+  #   mountPath: /opt/kafka/ssl
+  # # Spec of spec.template.spec.volumes
+  # volumes:
+  # - name: kafka-ssl
+  #   secret:
+  #     secretName: kafka-ssl

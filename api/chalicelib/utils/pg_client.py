@@ -1,3 +1,4 @@
+import logging
 import time
 from threading import Semaphore
 
@@ -5,6 +6,9 @@ import psycopg2
 import psycopg2.extras
 from decouple import config
 from psycopg2 import pool
+
+logging.basicConfig(level=config("LOGLEVEL", default=logging.INFO))
+logging.getLogger('apscheduler').setLevel(config("LOGLEVEL", default=logging.INFO))
 
 _PG_CONFIG = {"host": config("pg_host"),
               "database": config("pg_dbname"),
@@ -15,6 +19,8 @@ _PG_CONFIG = {"host": config("pg_host"),
 PG_CONFIG = dict(_PG_CONFIG)
 if config("pg_timeout", cast=int, default=0) > 0:
     PG_CONFIG["options"] = f"-c statement_timeout={config('pg_timeout', cast=int) * 1000}"
+
+logging.info(f">PG_POOL:{config('PG_POOL', default=None)}")
 
 
 class ORThreadedConnectionPool(psycopg2.pool.ThreadedConnectionPool):
@@ -32,8 +38,15 @@ class ORThreadedConnectionPool(psycopg2.pool.ThreadedConnectionPool):
             raise e
 
     def putconn(self, *args, **kwargs):
-        super().putconn(*args, **kwargs)
-        self._semaphore.release()
+        try:
+            super().putconn(*args, **kwargs)
+            self._semaphore.release()
+        except psycopg2.pool.PoolError as e:
+            if str(e) == "trying to put unkeyed connection":
+                print("!!! trying to put unkeyed connection")
+                print(f"env-PG_POOL:{config('PG_POOL', default=None)}")
+                return
+            raise e
 
 
 postgreSQL_pool: ORThreadedConnectionPool = None
@@ -44,40 +57,45 @@ RETRY = 0
 
 
 def make_pool():
+    if not config('PG_POOL', cast=bool, default=True):
+        return
     global postgreSQL_pool
     global RETRY
     if postgreSQL_pool is not None:
         try:
             postgreSQL_pool.closeall()
         except (Exception, psycopg2.DatabaseError) as error:
-            print("Error while closing all connexions to PostgreSQL", error)
+            logging.error("Error while closing all connexions to PostgreSQL", error)
     try:
         postgreSQL_pool = ORThreadedConnectionPool(config("pg_minconn", cast=int, default=20),
                                                    config("pg_maxconn", cast=int, default=80),
                                                    **PG_CONFIG)
         if (postgreSQL_pool):
-            print("Connection pool created successfully")
+            logging.info("Connection pool created successfully")
     except (Exception, psycopg2.DatabaseError) as error:
-        print("Error while connecting to PostgreSQL", error)
+        logging.error("Error while connecting to PostgreSQL", error)
         if RETRY < RETRY_MAX:
             RETRY += 1
-            print(f"waiting for {RETRY_INTERVAL}s before retry n°{RETRY}")
+            logging.info(f"waiting for {RETRY_INTERVAL}s before retry n°{RETRY}")
             time.sleep(RETRY_INTERVAL)
             make_pool()
         else:
             raise error
 
 
-make_pool()
+if config('PG_POOL', cast=bool, default=True):
+    make_pool()
 
 
 class PostgresClient:
     connection = None
     cursor = None
     long_query = False
+    unlimited_query = False
 
     def __init__(self, long_query=False, unlimited_query=False):
         self.long_query = long_query
+        self.unlimited_query = unlimited_query
         if unlimited_query:
             long_config = dict(_PG_CONFIG)
             long_config["application_name"] += "-UNLIMITED"
@@ -85,8 +103,14 @@ class PostgresClient:
         elif long_query:
             long_config = dict(_PG_CONFIG)
             long_config["application_name"] += "-LONG"
-            long_config["options"] = f"-c statement_timeout={config('pg_long_timeout', cast=int, default=5*60) * 1000}"
+            long_config["options"] = f"-c statement_timeout=" \
+                                     f"{config('pg_long_timeout', cast=int, default=5 * 60) * 1000}"
             self.connection = psycopg2.connect(**long_config)
+        elif not config('PG_POOL', cast=bool, default=True):
+            single_config = dict(_PG_CONFIG)
+            single_config["application_name"] += "-NOPOOL"
+            single_config["options"] = f"-c statement_timeout={config('pg_timeout', cast=int, default=3 * 60) * 1000}"
+            self.connection = psycopg2.connect(**single_config)
         else:
             self.connection = postgreSQL_pool.getconn()
 
@@ -99,17 +123,22 @@ class PostgresClient:
         try:
             self.connection.commit()
             self.cursor.close()
-            if self.long_query:
+            if self.long_query or self.unlimited_query:
                 self.connection.close()
         except Exception as error:
-            print("Error while committing/closing PG-connection", error)
-            if str(error) == "connection already closed":
-                print("Recreating the connexion pool")
+            logging.error("Error while committing/closing PG-connection", error)
+            if str(error) == "connection already closed" \
+                    and not self.long_query \
+                    and not self.unlimited_query \
+                    and config('PG_POOL', cast=bool, default=True):
+                logging.info("Recreating the connexion pool")
                 make_pool()
             else:
                 raise error
         finally:
-            if not self.long_query:
+            if config('PG_POOL', cast=bool, default=True) \
+                    and not self.long_query \
+                    and not self.unlimited_query:
                 postgreSQL_pool.putconn(self.connection)
 
 

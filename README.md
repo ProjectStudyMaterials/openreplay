@@ -47,7 +47,7 @@ OpenReplay is a session replay suite you can host yourself, that lets you see wh
 - **Omni-search:** Search and filter by almost any user action/criteria, session attribute or technical event, so you can answer any question. No instrumentation required.
 - **Funnels:** For surfacing the most impactful issues causing conversion and revenue loss.
 - **Fine-grained privacy controls:** Choose what to capture, what to obscure or what to ignore so user data doesn't even reach your servers.
-- **Plugins oriented:** Get to the root cause even faster by tracking application state (Redux, VueX, MobX, NgRx) and logging GraphQL queries (Apollo, Relay) and Fetch requests.
+- **Plugins oriented:** Get to the root cause even faster by tracking application state (Redux, VueX, MobX, NgRx, Pinia and Zustand) and logging GraphQL queries (Apollo, Relay) and Fetch/Axios requests.
 - **Integrations:** Sync your backend logs with your session replays and see what happened front-to-back. OpenReplay supports Sentry, Datadog, CloudWatch, Stackdriver, Elastic and more.
 
 ## Deployment Options
@@ -73,6 +73,7 @@ Please refer to the [official OpenReplay documentation](https://docs.openreplay.
 - [Slack](https://slack.openreplay.com) (Connect with our engineers and community)
 - [GitHub](https://github.com/openreplay/openreplay/issues) (Bug and issue reports)
 - [Twitter](https://twitter.com/OpenReplayHQ) (Product updates, Great content)
+- [YouTube](https://www.youtube.com/channel/UCcnWlW-5wEuuPAwjTR1Ydxw) (How-to tutorials, past Community Calls)
 - [Website chat](https://openreplay.com) (Talk to us)
 
 ## Contributing
@@ -89,7 +90,7 @@ Check out our [roadmap](https://www.notion.so/openreplay/Roadmap-889d2c3d968b478
 
 ## License
 
-This repo is under the Elastic License 2.0 (ELv2), with the exception of the `ee` directory.
+This monorepo uses several licenses. See [LICENSE](/LICENSE) for more details.
 
 ## Contributors
 

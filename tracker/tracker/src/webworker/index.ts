@@ -1,86 +1,93 @@
-import type Message from "../common/messages.js";
-import { WorkerMessageData } from "../common/webworker.js";
+import type Message from '../common/messages.gen.js'
+import { Type as MType } from '../common/messages.gen.js'
+import { WorkerMessageData } from '../common/interaction.js'
 
-import { 
-  classes,
-  SetPageVisibility,
-  MouseMove,
-} from "../common/messages.js";
-import QueueSender from "./QueueSender.js";
-import BatchWriter from "./BatchWriter.js";
+import QueueSender from './QueueSender.js'
+import BatchWriter from './BatchWriter.js'
 
 enum WorkerStatus {
   NotActive,
   Starting,
   Stopping,
-  Active
+  Active,
 }
 
 const AUTO_SEND_INTERVAL = 10 * 1000
 
 let sender: QueueSender | null = null
 let writer: BatchWriter | null = null
-let workerStatus: WorkerStatus = WorkerStatus.NotActive;
+let workerStatus: WorkerStatus = WorkerStatus.NotActive
 
-function send(): void {
+function finalize(): void {
   if (!writer) {
     return
   }
-  writer.finaliseBatch()
+  writer.finaliseBatch() // TODO: force sendAll?
 }
 
-
-function reset() {
-  workerStatus = WorkerStatus.Stopping
-  if (sendIntervalID !== null) {
-    clearInterval(sendIntervalID);
-    sendIntervalID = null;
-  }
+function resetWriter(): void {
   if (writer) {
     writer.clean()
     writer = null
   }
-  workerStatus = WorkerStatus.NotActive
 }
 
-function resetCleanQueue() {
+function resetSender(): void {
   if (sender) {
     sender.clean()
     sender = null
-  } 
-  reset()  
+  }
+}
+
+function reset(): void {
+  workerStatus = WorkerStatus.Stopping
+  if (sendIntervalID !== null) {
+    clearInterval(sendIntervalID)
+    sendIntervalID = null
+  }
+  resetWriter()
+  resetSender()
+  workerStatus = WorkerStatus.NotActive
+}
+
+function initiateRestart(): void {
+  self.postMessage('restart')
+  reset()
+}
+function initiateFailure(): void {
+  self.postMessage('failed')
+  reset()
 }
 
 let sendIntervalID: ReturnType<typeof setInterval> | null = null
 let restartTimeoutID: ReturnType<typeof setTimeout>
 
-self.onmessage = ({ data }: MessageEvent<WorkerMessageData>) => {
+self.onmessage = ({ data }: MessageEvent<WorkerMessageData>): any => {
   if (data == null) {
-    send() // TODO: sendAll?
+    finalize()
     return
   }
-  if (data === "stop") {
-    send()
+  if (data === 'stop') {
+    finalize()
     reset()
     return
   }
 
   if (Array.isArray(data)) {
+    // Message[]
     if (!writer) {
-      throw new Error("WebWorker: writer not initialised. Service Should be Started.")
+      throw new Error('WebWorker: writer not initialised. Service Should be Started.')
     }
     const w = writer
-    // Message[]
-    data.forEach((data) => {
-      const message: Message = new (<any>classes.get(data._id))();
-      Object.assign(message, data)
-      if (message instanceof SetPageVisibility) {
-        if ( (<any>message).hidden) {
-          restartTimeoutID = setTimeout(() => self.postMessage("restart"), 30*60*1000)
+    data.forEach((message) => {
+      if (message[0] === MType.SetPageVisibility) {
+        if (message[1]) {
+          // .hidden
+          restartTimeoutID = setTimeout(() => initiateRestart(), 30 * 60 * 1000)
         } else {
           clearTimeout(restartTimeoutID)
         }
-      }     
+      }
       w.writeMessage(message)
     })
     return
@@ -90,12 +97,13 @@ self.onmessage = ({ data }: MessageEvent<WorkerMessageData>) => {
     workerStatus = WorkerStatus.Starting
     sender = new QueueSender(
       data.ingestPoint,
-      () => { // onUnauthorised
-        self.postMessage("restart")
+      () => {
+        // onUnauthorised
+        initiateRestart()
       },
-      () => { // onFailure
-        resetCleanQueue()
-        self.postMessage("failed")
+      () => {
+        // onFailure
+        initiateFailure()
       },
       data.connAttemptCount,
       data.connAttemptGap,
@@ -103,24 +111,25 @@ self.onmessage = ({ data }: MessageEvent<WorkerMessageData>) => {
     writer = new BatchWriter(
       data.pageNo,
       data.timestamp,
+      data.url,
       // onBatch
-      batch => sender && sender.push(batch)
+      (batch) => sender && sender.push(batch),
     )
     if (sendIntervalID === null) {
-      sendIntervalID = setInterval(send, AUTO_SEND_INTERVAL)
+      sendIntervalID = setInterval(finalize, AUTO_SEND_INTERVAL)
     }
-    return workerStatus = WorkerStatus.Active
+    return (workerStatus = WorkerStatus.Active)
   }
 
-  if (data.type === "auth") {
+  if (data.type === 'auth') {
     if (!sender) {
-      throw new Error("WebWorker: sender not initialised. Received auth.")
+      throw new Error('WebWorker: sender not initialised. Received auth.')
     }
     if (!writer) {
-      throw new Error("WebWorker: writer not initialised. Received auth.")
+      throw new Error('WebWorker: writer not initialised. Received auth.')
     }
     sender.authorise(data.token)
     data.beaconSizeLimit && writer.setBeaconSizeLimit(data.beaconSizeLimit)
     return
   }
-};
+}

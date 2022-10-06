@@ -42,11 +42,13 @@ spec:
           {{- .Values.healthCheck | toYaml | nindent 10}}
           {{- end}}
           env:
+            - name: ASSIST_KEY
+              value: {{ .Values.global.assistKey }}
             - name: AWS_DEFAULT_REGION
               value: "{{ .Values.global.s3.region }}"
             - name: S3_HOST
               {{- if eq .Values.global.s3.endpoint "http://minio.db.svc.cluster.local:9000" }}
-              value: 'https://{{ .Values.global.domainName }}'
+              value: 'https://{{ .Values.global.domainName }}:{{ .Values.global.ingress.controller.service.ports.https}}'
               {{- else}}
               value: '{{ .Values.global.s3.endpoint }}'
               {{- end}}
@@ -62,10 +64,18 @@ spec:
             {{- range $key, $val := .Values.service.ports }}
             - name: {{ $key }}
               containerPort: {{ $val }}
-              protocol: TCP
             {{- end }}
+              protocol: TCP
+          {{- with .Values.persistence.mounts  }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.persistence.volumes  }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

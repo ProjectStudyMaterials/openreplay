@@ -7,13 +7,13 @@ function SideMenuitem({
     iconBg = false,
     iconColor = "gray-dark",
     iconSize = 18,
-    className, 
+    className = '', 
     iconName = null,
     title,
     active = false,
     disabled = false,
     onClick,
-    deleteHandler,
+    deleteHandler = null,
     leading = null,
     ...props
   }) {
@@ -29,7 +29,7 @@ function SideMenuitem({
           className={ cn(
             className,
             stl.menuItem,
-            "flex items-center py-2 justify-between",
+            "flex items-center py-2 justify-between shrink-0",
             { [stl.active] : active }
           )}
           onClick={disabled ? null : onClick}

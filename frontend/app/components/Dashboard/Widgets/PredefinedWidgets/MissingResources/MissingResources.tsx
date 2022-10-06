@@ -47,12 +47,15 @@ function MissingResources(props: Props) {
     if (!isTemplate) {
       cols.push(copyPathCol);
     }
+
+    console.log('metric.data.chart', metric.data.chart);
     
     return (
         <NoContent
-          title="No resources missing."
+          title="No resources missing"
           size="small"
           show={ metric.data.chart.length === 0 }
+          style={{ minHeight: 220 }}
         >
           <div style={{ height: '240px'}}>
             <Table

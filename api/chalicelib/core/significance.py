@@ -495,7 +495,7 @@ def get_issues(stages, rows, first_stage=None, last_stage=None, drop_only=False)
                                                                                                all_issues_with_context,
                                                                                                first_stage, last_stage)
 
-    print("len(transitions) =", len(transitions))
+    # print("len(transitions) =", len(transitions))
 
     if any(all_errors):
         total_drop_corr, conf, is_sign = pearson_corr(transitions, all_errors)
@@ -559,8 +559,8 @@ def get_top_insights(filter_d, project_id):
             "dropDueToIssues": 0
 
         }]
-        counts = sessions.search2_pg(data=schemas.SessionsSearchCountSchema.parse_obj(filter_d), project_id=project_id,
-                                     user_id=None, count_only=True)
+        counts = sessions.search_sessions(data=schemas.SessionsSearchCountSchema.parse_obj(filter_d), project_id=project_id,
+                                          user_id=None, count_only=True)
         output[0]["sessionsCount"] = counts["countSessions"]
         output[0]["usersCount"] = counts["countUsers"]
         return output, 0
