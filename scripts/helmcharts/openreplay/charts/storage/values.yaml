@@ -98,7 +98,7 @@ pvc:
   # For example
   # name: openreplay-efs
   name: hostPath
-  hostMountPath: /openreplay/storage/nfs
+  hostMountPath: /media/openreplay/storage/nfs
 
 persistence: {}
   # # Spec of spec.template.spec.containers[*].volumeMounts

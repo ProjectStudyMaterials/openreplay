@@ -28,7 +28,7 @@ pvc:
   storageClassName: nfs
   volumeName: nfs
   mountPath: /mnt/efs
-  hostMountPath: /openreplay/storage/nfs
+  hostMountPath: /media/openreplay/storage/nfs
   storageSize: 5Gi
 
 env:
