@@ -16,7 +16,7 @@ efsCleaner:
     # For example
     # name: openreplay-efs
     name: hostPath
-    hostMountPath: /media/openreplay/storage/nfs
+    hostMountPath: /openreplay/storage/nfs
 
 telemetry:
   # https://crontab.guru/#5_12_*_*_*

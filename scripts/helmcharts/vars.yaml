@@ -3,7 +3,7 @@ fromVersion: "v1.8.1"
 postgresql: &postgres
   # For generating passwords
   # `openssl rand -hex 20`
-  postgresqlPassword: "849aa072f7c096bacb75"
+  postgresqlPassword: "changeMePassword"
   postgresqlHost: "postgresql.db.svc.cluster.local"
   postgresqlPort: "5432"
   postgresqlUser: "postgres"
@@ -58,8 +58,8 @@ minio:
     minio:
       # For generating passwords
       # `openssl rand -hex 20`
-      accessKey: "e526779b9864d33cc775"
-      secretKey: "e9ef4a948d7d52a33ab6"
+      accessKey: "changeMeMinioAccessKey"
+      secretKey: "changeMeMinioPassword"
 
 ingress-nginx: &ingress-nginx
   controller:
@@ -113,8 +113,8 @@ global:
     # if you're using one node installation, where
     # you're using local s3, make sure these variables
     # are same as minio.global.minio.accesskey and  secretKey
-    accessKey: "e526779b9864d33cc775"
-    secretKey: "e9ef4a948d7d52a33ab6"
+    accessKey: "changeMeMinioAccessKey"
+    secretKey: "changeMeMinioPassword"
   email:
     emailHost: ''
     emailPort: '587'
@@ -142,7 +142,7 @@ global:
 
 chalice:
   env:
-    jwt_secret: "9d1d6f97119cc028725f"
+    jwt_secret: "SetARandomStringHere"
     # captcha_server: ''
     # captcha_key: ''
     # SAML2_MD_URL: ''
