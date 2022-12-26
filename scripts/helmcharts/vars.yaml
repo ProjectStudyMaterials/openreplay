@@ -70,10 +70,11 @@ ingress-nginx: &ingress-nginx
   # Algorithm is as follows, first ingressClassName is considered, if not present, controller looks for ingress.class annotation
     ingressClass: openreplay
     service:
-      externalTrafficPolicy: "Local"
-      ports:
-        http: 80
-        https: 443
+      #externalTrafficPolicy: "Local"
+      type: NodePort
+      nodePorts:
+        http: "30080"
+        https: "30443"
     extraArgs:
       default-ssl-certificate: "app/openreplay-ssl"
     config:
@@ -89,7 +90,7 @@ ingress-nginx: &ingress-nginx
       # SSL redirection
       ssl-redirect: false
       force-ssl-redirect: false
-      proxy-body-size: 10m
+      proxy-body-size: 20m
 
 # Application specific variables
 global:
@@ -126,7 +127,7 @@ global:
     emailFrom: 'OpenReplay<do-not-reply@openreplay.com>'
 
   enterpriseEditionLicense: ""
-  domainName: ""
+  domainName: "openreplay.justenoughprep.com"
 
 # If there is multiple nodes in the kubernetes cluster,
 # we'll have to create a NFS share PVC for both the containers to share data.
@@ -166,3 +167,22 @@ chalice:
 #     requests:
 #       cpu: 512m
 #       memory: 2056Mi
+http:
+  ingress:
+    annotations:
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+  env:
+    BEACON_SIZE_LIMIT: "19999999"
+
+sink:
+  pvc:
+    hostMountPath: /media/openreplay/storage/nfs
+
+storage:
+  pvc:
+    hostMountPath: /media/openreplay/storage/nfs
+
+utilities:
+  pvc:
+    hostMountPath: /media/openreplay/storage/nfs
