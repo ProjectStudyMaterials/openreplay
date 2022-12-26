@@ -175,3 +175,14 @@ http:
   env:
     BEACON_SIZE_LIMIT: "19999999"
 
+sink:
+  pvc:
+    hostMountPath: /media/openreplay/storage/nfs
+
+storage:
+  pvc:
+    hostMountPath: /media/openreplay/storage/nfs
+
+utilities:
+  pvc:
+    hostMountPath: /media/openreplay/storage/nfs
